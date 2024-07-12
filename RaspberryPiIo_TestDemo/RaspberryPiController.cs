@@ -1,10 +1,5 @@
-﻿using Microsoft.OpenApi.Extensions;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Device.Gpio;
-using System.Net.NetworkInformation;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Device.Gpio;
+using System.IO.Ports;
 using System.Text;
 
 public class RaspberryPiController
@@ -31,8 +26,7 @@ public class RaspberryPiController
     ///                GPIO 26 - 37 | 38 - GPIO 20 [(MOSI) SPI1]
     ///                    GND - 39 | 40 - GPIO 21 [(SCLK) SPI1]
 
-    private readonly GpioController _controller;
-
+    private readonly GpioController? _controller;
 
     public enum Pinout { vout_3_3V, vout_5v, GPIO, GND };
 
@@ -49,6 +43,8 @@ public class RaspberryPiController
         PinMode.InputPullUp,
         PinMode.InputPullUp,
         PinMode.InputPullUp,
+        PinMode.InputPullDown,
+        PinMode.InputPullDown,
         PinMode.InputPullDown,
         PinMode.InputPullDown,
         PinMode.InputPullDown,
@@ -173,10 +169,12 @@ public class RaspberryPiController
         }
     };
 
-
     public RaspberryPiController(IServiceProvider serviceProvider)
     {
         _controller = new GpioController();
+    }
+    public RaspberryPiController()
+    {
     }
 
     public string ReadAll()
@@ -186,18 +184,53 @@ public class RaspberryPiController
         return sb.ToString();
     }
 
-    public void GetPinouts()
+    public string GetPinouts()
     {
+        var currentPinouts = DefaultPinouts.Select(p => p.ToString()).ToList();
+        for (int i = 0; i < _pinModes.Length; i++)
+            currentPinouts[GpioToPin[i] - 1] = _pinModes[i].ToString();
 
+        foreach (var protocol in _porotocolInfos.Values)
+            if(protocol.Enabled)
+                foreach(var pinInfo in protocol.ProtocolPinInfo)            
+                    if(pinInfo.Value % 2 == 1)
+                        currentPinouts[pinInfo.Value - 1] = $"{protocol.Protocol}-{pinInfo.Key}";
+                    else
+                        currentPinouts[pinInfo.Value - 1] = $"{pinInfo.Key}-{protocol.Protocol}";
+
+        StringBuilder sb = new();
+        for (var i = 0; i < currentPinouts.Count - 2; i = i + 2)
+            sb.Append(currentPinouts[i].PadLeft(25)).Append($" - {i + 1:00}"). Append(" | ").Append($"{i + 2:00} - ").AppendLine(currentPinouts[i + 1].PadRight(25));
+        var lastPair = currentPinouts.Count - 2;
+        sb.Append(currentPinouts[lastPair].PadLeft(25)).Append($" - {lastPair + 1:00}").Append(" | ").Append($"{lastPair + 2:00} - ").Append(currentPinouts[lastPair + 1].PadRight(25));
+        return sb.ToString();
     }
 
     public void SetProtocol(ProtocolOut protocol, bool isEnabled)
     {
         _porotocolInfos[protocol].Enabled = isEnabled;
+        switch(protocol)
+        {
+            case ProtocolOut.SPI0:
+                break;
+            case ProtocolOut.SPI1:
+                break;
+            case ProtocolOut.UART:
+                break;
+            case ProtocolOut.I2C0:
+                break;
+            case ProtocolOut.I2C1:
+                break;
+        }
     }
 
-    public void SetMode()
+    public string[] GetPorts()
     {
+        return SerialPort.GetPortNames();
+    }
 
+    public void SetMode(int index, PinMode pinMode)
+    {
+        _pinModes[index] = pinMode;
     }
 }
