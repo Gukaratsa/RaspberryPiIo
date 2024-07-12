@@ -1,0 +1,6 @@
+@RaspberryPiIo_TestDemo_HostAddress = http://192.168.0.210:5282
+
+GET {{RaspberryPiIo_TestDemo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
