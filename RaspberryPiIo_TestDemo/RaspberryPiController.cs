@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Device.Gpio;
 using System.Net.NetworkInformation;
 using System.Reflection.Metadata.Ecma335;
+using System.Text;
 
 public class RaspberryPiController
 {
@@ -73,12 +74,7 @@ public class RaspberryPiController
         { 20, 38 }, { 21, 40 }, { 22, 15 }, { 23, 16 }, { 24, 18 }, { 25, 22 }, { 26, 37 }, { 27, 13 }
     });
     private static Lazy<IReadOnlyDictionary<int, int>> _pinToGpio_Lazy = new Lazy<IReadOnlyDictionary<int, int>>(() => _gpioToPin_Lazy.Value.ToDictionary(x => x.Value, x => x.Key));
-    //private static Lazy<IReadOnlyDictionary<int, int>> _pinToGpio_Lazy = new Lazy<IReadOnlyDictionary<int, int>>(() => new Dictionary<int, int>{
-    //    {  3,  2 }, {  5,  3 }, {  7,  4 }, {  8, 14 }, { 10, 15 }, { 11, 17 }, { 12, 18 }, { 13, 27 }, { 15, 22 }, { 16, 23 },
-    //    { 18, 24 }, { 19, 10 }, { 21,  9 }, { 22, 25 }, { 23, 11 }, { 24,  8 }, { 26,  7 }, { 27,  0 }, { 28,  1 }, { 29,  5 },
-    //    { 31,  6 }, { 32, 12 }, { 33, 13 }, { 35, 19 }, { 36, 16 }, { 37, 26 }, { 38, 20 }, { 40, 21 }
-    //});
-    private static Lazy<IReadOnlyCollection<Pinout>> _pinouts = new Lazy<IReadOnlyCollection<Pinout>>(() => new List<Pinout> {
+    private static Lazy<IReadOnlyCollection<Pinout>> _defaultPinouts = new Lazy<IReadOnlyCollection<Pinout>>(() => new List<Pinout> {
         Pinout.vout_3_3V,   Pinout.vout_5v,     // 01 | 02
         Pinout.GPIO,        Pinout.vout_5v,     // 03 | 04
         Pinout.GPIO,        Pinout.GND,         // 05 | 06
@@ -102,9 +98,8 @@ public class RaspberryPiController
     }.AsReadOnly());
     public static IReadOnlyDictionary<int, int> GpioToPin => _gpioToPin_Lazy.Value;
     public static IReadOnlyDictionary<int, int> PinToGpio => _pinToGpio_Lazy.Value;
-    public static IReadOnlyCollection<Pinout> Pinouts => _pinouts.Value;
-
-
+    public static IReadOnlyCollection<Pinout> DefaultPinouts => _defaultPinouts.Value;
+   
     public enum ProtocolPinout {
         SDA, SCL,
         GPCLK0, GPCLK1, GPCLK2,
@@ -121,17 +116,59 @@ public class RaspberryPiController
     private readonly ProtocolOut[] _porotocolOuts = [
     ];
 
-    private record ProtocolInfo(
-        ProtocolOut Protocol,
-        bool Enabled,
-        IDictionary<ProtocolPinout, int> ProtocolPinInfo);
-    private readonly Dictionary<ProtocolOut, ProtocolInfo> _porotocolInfos = new Dictionary<ProtocolOut, ProtocolInfo> {
+    private class ProtocolInfo(
+        ProtocolOut protocol,
+        bool enabled,
+        IReadOnlyDictionary<ProtocolPinout, int> protocolPinInfo)
+    {
+        public ProtocolOut Protocol { get; init; } = protocol;
+        public bool Enabled { get; set; } = enabled;
+        public IReadOnlyDictionary<ProtocolPinout, int> ProtocolPinInfo { get; init; } = protocolPinInfo;
+    }
+
+    private readonly IReadOnlyDictionary<ProtocolOut, ProtocolInfo> _porotocolInfos = new Dictionary<ProtocolOut, ProtocolInfo> {
         { ProtocolOut.I2C0, 
             new(ProtocolOut.I2C0, 
                 false, 
                 new Dictionary<ProtocolPinout, int>(){ 
-                    { ProtocolPinout.SDA, 1 }, 
-                    { ProtocolPinout.SCL, 1 } 
+                    { ProtocolPinout.ID_SD, 27 }, 
+                    { ProtocolPinout.ID_SC, 28 }
+                })
+        },
+        { ProtocolOut.I2C1,
+            new(ProtocolOut.I2C1,
+                false,
+                new Dictionary<ProtocolPinout, int>(){
+                    { ProtocolPinout.SDA, 3 },
+                    { ProtocolPinout.SCL, 5 }
+                })
+        },
+        { ProtocolOut.SPI0,
+            new(ProtocolOut.SPI0,
+                false,
+                new Dictionary<ProtocolPinout, int>(){
+                    { ProtocolPinout.MOSI, 19 },
+                    { ProtocolPinout.MISO, 21 },
+                    { ProtocolPinout.SCLK, 23 },
+                    { ProtocolPinout.CE0,  24 },
+                    { ProtocolPinout.CE1,  26 }
+                })
+        },
+        { ProtocolOut.SPI1,
+            new(ProtocolOut.SPI1,
+                false,
+                new Dictionary<ProtocolPinout, int>(){
+                    { ProtocolPinout.MOSI, 35 },
+                    { ProtocolPinout.MISO, 38 },
+                    { ProtocolPinout.SCLK, 40 }
+                })
+        },
+        { ProtocolOut.UART,
+            new(ProtocolOut.UART,
+                false,
+                new Dictionary<ProtocolPinout, int>(){
+                    { ProtocolPinout.TxD, 8 },
+                    { ProtocolPinout.RxD, 10 }
                 })
         }
     };
@@ -142,9 +179,21 @@ public class RaspberryPiController
         _controller = new GpioController();
     }
 
-    public void ReadAll()
+    public string ReadAll()
     {
-        
+        StringBuilder sb = new();
+
+        return sb.ToString();
+    }
+
+    public void GetPinouts()
+    {
+
+    }
+
+    public void SetProtocol(ProtocolOut protocol, bool isEnabled)
+    {
+        _porotocolInfos[protocol].Enabled = isEnabled;
     }
 
     public void SetMode()

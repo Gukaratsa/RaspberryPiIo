@@ -27,7 +27,7 @@ namespace RaspberryPiIo_TestDemo_UnitTest
         {
             foreach (var v_orig in RaspberryPiController.GpioToPin)
             {
-                var v_targ = RaspberryPiController.Pinouts.ElementAt(v_orig.Value - 1);
+                var v_targ = RaspberryPiController.DefaultPinouts.ElementAt(v_orig.Value - 1);
                 Assert.Equal(RaspberryPiController.Pinout.GPIO, v_targ);
             }
         }
